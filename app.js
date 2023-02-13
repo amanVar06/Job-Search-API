@@ -11,22 +11,6 @@ dotenv.config({ path: "./config/config.env" });
 //connecting to database
 connectDatabase();
 
-/*
-//creating our own middleware (it is available everywhere in our project and it will always going to run independent of req and res)
-const customMiddleware = (req, res, next) => {
-  console.log("Hello from middleware");
-
-  //Setting up user variable globally
-  req.user = "Aman Varshney";
-  req.requestMethod = req.method;
-  req.requestURL = req.url;
-  next();
-};
-
-//use this middleware
-app.use(customMiddleware);
-*/
-
 // Setup body parser
 app.use(express.json());
 
