@@ -1,0 +1,23 @@
+{
+  "name": "jobbee-api",
+  "version": "1.0.0",
+  "description": "This API is about jobs",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app",
+    "prod": "NODE_ENV=production nodemon app.js"
+  },
+  "author": "Aman Varshney",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "mongoose": "^6.9.1",
+    "slugify": "^1.6.5",
+    "validator": "^13.9.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
