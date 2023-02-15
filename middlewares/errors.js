@@ -1,6 +1,8 @@
 //setting up middleware for errors
 //also separate production errors and development errors
 
+const ErrorHandler = require("../utils/errorHandler.js");
+
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
 
@@ -18,9 +20,21 @@ module.exports = (err, req, res, next) => {
 
     error.message = err.message;
 
-    res.status(err.statusCode).json({
+    // Wrong mongoose object ID error
+    if (err.name === "CastError") {
+      const message = `Resource not found. Invalid: ${err.path}`;
+      error = new ErrorHandler(message, 404);
+    }
+
+    // Handling mongoose validation error
+    if (err.name === "ValidationError") {
+      const message = Object.values(err.errors).map((value) => value.message);
+      error = new ErrorHandler(message, 400);
+    }
+
+    res.status(error.statusCode).json({
       success: false,
-      errMessage: err.message,
+      errMessage: error.message || "Internal Server Error",
     });
   }
 };
