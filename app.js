@@ -5,11 +5,12 @@ const dotenv = require("dotenv");
 
 const connectDatabase = require("./config/database.js");
 const errorMiddleware = require("./middlewares/errors.js");
+const ErrorHandler = require("./utils/errorHandler.js");
 
 //setting up config.env file variables
 dotenv.config({ path: "./config/config.env" });
 
-//Handling Uncaught Exception
+//Handling Uncaught Exception (must write at top)
 process.on("uncaughtException", (err) => {
   console.log(`Error: ${err.message}`);
   console.log("Shutting down due to Uncaught Exception.");
@@ -28,6 +29,11 @@ app.use(express.json());
 const jobs = require("./routes/jobs.js");
 
 app.use("/api/v1", jobs);
+
+// Handling Unhandled Routes (write after all the routes)
+app.all("*", (req, res, next) => {
+  next(new ErrorHandler(`${req.originalUrl} route not found`, 404));
+});
 
 //Middleware to handle errors
 app.use(errorMiddleware);
