@@ -4,9 +4,19 @@ const app = express();
 const dotenv = require("dotenv");
 
 const connectDatabase = require("./config/database.js");
+const errorMiddleware = require("./middlewares/errors.js");
 
 //setting up config.env file variables
 dotenv.config({ path: "./config/config.env" });
+
+//Handling Uncaught Exception
+process.on("uncaughtException", (err) => {
+  console.log(`Error: ${err.message}`);
+  console.log("Shutting down due to Uncaught Exception.");
+
+  process.exit(1);
+  //simply close the process no need to close the server
+});
 
 //connecting to database
 connectDatabase();
@@ -19,9 +29,24 @@ const jobs = require("./routes/jobs.js");
 
 app.use("/api/v1", jobs);
 
+//Middleware to handle errors
+app.use(errorMiddleware);
+
 const PORT = process.env.PORT;
-app.listen(PORT, () => {
+
+const server = app.listen(PORT, () => {
   console.log(
     `Server is started at PORT ${PORT} in ${process.env.NODE_ENV} mode.`
   );
+});
+
+//Handling Unhandled Promise Rejection
+//Critical Error always close the server after this error occurs
+process.on("unhandledRejection", (err) => {
+  console.log(`Error: ${err.message}`);
+  console.log("Shutting down the server due to Unhandled promise rejection.");
+
+  server.close(() => {
+    process.exit(1);
+  });
 });
