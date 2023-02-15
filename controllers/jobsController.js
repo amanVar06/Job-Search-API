@@ -1,12 +1,15 @@
 const Job = require("../models/jobs.js");
 const geoCoder = require("../utils/geocoder.js");
+const APIFilters = require("../utils/apiFilters.js");
 
 const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors.js");
 
 // Get all Jobs => /api/v1/jobs
 exports.getJobs = catchAsyncErrors(async (req, res, next) => {
-  const jobs = await Job.find();
+  const apiFilters = new APIFilters(Job.find(), req.query);
+  apiFilters.filter();
+  const jobs = await apiFilters.query;
 
   res.status(200).json({
     success: true,
