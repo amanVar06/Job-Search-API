@@ -8,7 +8,7 @@ class APIFilters {
     const queryCopy = { ...this.queryStr };
 
     // Removing fields from the query
-    const removeFields = ["sort"];
+    const removeFields = ["sort", "fields"];
     removeFields.forEach((ele) => delete queryCopy[ele]);
     //for each element remove it from the querycopy
 
@@ -35,6 +35,18 @@ class APIFilters {
     } else {
       //by default sort by latest job at top i.e. postingDate
       this.query = this.query.sort("-postingDate");
+    }
+
+    return this;
+  }
+
+  limitFields() {
+    //if you only want to see some particular fields
+    if (this.queryStr.fields) {
+      const fields = this.queryStr.fields.split(",").join(" ");
+      this.query = this.query.select(fields);
+    } else {
+      this.query = this.query.select("-__v");
     }
 
     return this;
