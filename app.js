@@ -27,8 +27,10 @@ app.use(express.json());
 
 //Importing all routes
 const jobs = require("./routes/jobs.js");
+const auth = require("./routes/auth.js");
 
 app.use("/api/v1", jobs);
+app.use("/api/v1", auth);
 
 // Handling Unhandled Routes (write after all the routes)
 app.all("*", (req, res, next) => {
