@@ -12,10 +12,10 @@ const sendToken = (user, statusCode, res) => {
     httpOnly: true,
   };
 
-  if (process.env.NODE_ENV === "production") {
-    options.secure = true;
-    // it will work properly when we have https not with http
-  }
+  // if (process.env.NODE_ENV === "production") {
+  //   options.secure = true;
+  //   // it will work properly when we have https not with http
+  // }
 
   res.status(statusCode).cookie("token", token, options).json({
     success: true,
