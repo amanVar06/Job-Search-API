@@ -2,6 +2,7 @@ const User = require("../models/users.js");
 const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors.js");
 const sendToken = require("../utils/jwtToken.js");
+const sendEmail = require("../utils/sendEmail.js");
 
 // Register a new user => /api/v1/register
 exports.registerUser = catchAsyncErrors(async (req, res, next) => {
@@ -41,4 +42,45 @@ exports.loginUser = catchAsyncErrors(async (req, res, next) => {
   }
 
   sendToken(user, 200, res);
+});
+
+// Forgot password => /api/v1/password/forgot
+exports.forgotPassoword = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  // Check user email in database
+  if (!user) {
+    return next(new ErrorHandler("No user found with this email.", 404));
+  }
+
+  // Get reset token
+  const resetToken = user.getResetPasswordToken();
+  await user.save({ validateBeforeSave: false });
+
+  // Create reset password url
+  const resetUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/api/v1/reset/${resetToken}`;
+
+  const message = `Your password reset link is as follow: \n\n ${resetUrl} \n\n If you have not request this, then please ignore that.`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Jobbee API Password Recovery",
+      text: message,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Email sent successfully to : ${user.email}`,
+    });
+  } catch (error) {
+    //if email sending is failed
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save({ validateBeforeSave: false });
+    return next(new ErrorHandler("Email is not sent.", 500));
+  }
 });

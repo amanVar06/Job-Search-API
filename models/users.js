@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -41,6 +42,9 @@ const userSchema = new mongoose.Schema({
 
 // Encrypting passwords before saving
 userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
+    next();
+  }
   this.password = await bcrypt.hash(this.password, 10); // 10 recommended to use for encrypting
 });
 
@@ -54,6 +58,26 @@ userSchema.methods.getJwtToken = function () {
 // Compare user password with database password
 userSchema.methods.comparePasswords = async function (enterPassword) {
   return await bcrypt.compare(enterPassword, this.password);
+};
+
+//Generate password reset token
+userSchema.methods.getResetPasswordToken = function () {
+  //Generate Token
+  const resetToken = crypto.randomBytes(20).toString("hex");
+
+  //Hash and set to reset Password Token
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  //Set token expire time (30 min)
+  this.resetPasswordExpire = Date.now() + 30 * 60 * 1000;
+
+  return resetToken;
+  // we have only saved the hashed version in the database
+  // we have to send email to reset password using the reset token
+  // not with hashed version, we do not need to send hash version in the email
 };
 
 module.exports = mongoose.model("User", userSchema);
