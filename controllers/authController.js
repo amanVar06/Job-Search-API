@@ -3,6 +3,7 @@ const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors.js");
 const sendToken = require("../utils/jwtToken.js");
 const sendEmail = require("../utils/sendEmail.js");
+const crypto = require("crypto");
 
 // Register a new user => /api/v1/register
 exports.registerUser = catchAsyncErrors(async (req, res, next) => {
@@ -55,12 +56,13 @@ exports.forgotPassoword = catchAsyncErrors(async (req, res, next) => {
 
   // Get reset token
   const resetToken = user.getResetPasswordToken();
+  // console.log("Receiving token", resetToken);
   await user.save({ validateBeforeSave: false });
 
   // Create reset password url
   const resetUrl = `${req.protocol}://${req.get(
     "host"
-  )}/api/v1/reset/${resetToken}`;
+  )}/api/v1/password/reset/${resetToken}`;
 
   const message = `Your password reset link is as follow: \n\n ${resetUrl} \n\n If you have not request this, then please ignore that.`;
 
@@ -83,4 +85,35 @@ exports.forgotPassoword = catchAsyncErrors(async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
     return next(new ErrorHandler("Email is not sent.", 500));
   }
+});
+
+//Reset Password => /api/v1/password/reset/:token
+
+exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
+  // Hash Url token (hashing url token with the algorithm)
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  // now checking the hashed version with the resetPasswordToken stored in the database
+  // console.log(resetPasswordToken);
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() }, //expiry date of token should be greater then current time
+  });
+
+  if (!user) {
+    return next(new ErrorHandler("Password reset token is invalid", 400));
+  }
+
+  //Setup new password
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+
+  await user.save();
+
+  sendToken(user, 200, res);
 });
