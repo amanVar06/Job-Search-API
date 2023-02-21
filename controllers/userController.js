@@ -5,7 +5,11 @@ const sendToken = require("../utils/jwtToken.js");
 
 // Get Current user profile => /api/v1/me
 exports.getUserProfile = catchAsyncErrors(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).populate({
+    //What I want to populate?
+    path: "jobsPublished", //name of the field
+    select: "title postingDate", // only want to see these fields
+  });
 
   res.status(200).json({
     success: true,

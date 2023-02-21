@@ -4,38 +4,44 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Please enter your name"],
-  },
-  email: {
-    type: String,
-    required: [true, "Please enter your email address"],
-    unique: true,
-    validate: [validator.isEmail, "Please enter valid email address"],
-  },
-  role: {
-    type: String,
-    enum: {
-      values: ["user", "employeer"],
-      message: "Please select correct role",
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Please enter your name"],
     },
-    default: "user",
+    email: {
+      type: String,
+      required: [true, "Please enter your email address"],
+      unique: true,
+      validate: [validator.isEmail, "Please enter valid email address"],
+    },
+    role: {
+      type: String,
+      enum: {
+        values: ["user", "employeer"],
+        message: "Please select correct role",
+      },
+      default: "user",
+    },
+    password: {
+      type: String,
+      required: [true, "Please enter password for your account"],
+      minlength: [8, "Your password must be at lease 8 characters long"],
+      select: false,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now(),
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
-  password: {
-    type: String,
-    required: [true, "Please enter password for your account"],
-    minlength: [8, "Your password must be at lease 8 characters long"],
-    select: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now(),
-  },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-});
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
 
 //we will use the mongoose middleware pre to encrypt the password
 //because we dont want to store the passoword as it is
@@ -80,5 +86,15 @@ userSchema.methods.getResetPasswordToken = function () {
   // we have to send email to reset password using the reset token
   // not with hashed version, we do not need to send hash version in the email
 };
+
+// Show all jobs create by user using virtuals
+// this is virtual because we are not actually storing it inside the database
+userSchema.virtual("jobsPublished", {
+  ref: "Job",
+  localField: "_id",
+  foreignField: "user",
+  justOne: false,
+});
+//we need to populate the user as well
 
 module.exports = mongoose.model("User", userSchema);
