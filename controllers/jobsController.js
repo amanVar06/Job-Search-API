@@ -5,6 +5,8 @@ const APIFilters = require("../utils/apiFilters.js");
 const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors.js");
 
+const path = require("path"); // built in module
+
 // Get all Jobs => /api/v1/jobs
 exports.getJobs = catchAsyncErrors(async (req, res, next) => {
   const apiFilters = new APIFilters(Job.find(), req.query);
@@ -118,7 +120,6 @@ exports.getJobsInRadius = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get stats about a topic(job) => /api/v1/stats/:topic
-
 exports.jobStats = catchAsyncErrors(async (req, res, next) => {
   const stats = await Job.aggregate([
     {
@@ -150,5 +151,88 @@ exports.jobStats = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({
     success: true,
     data: stats,
+  });
+});
+
+// Apply to a job using resume => /api/v1/job/:id/apply
+exports.applyJob = catchAsyncErrors(async (req, res, next) => {
+  let job = await Job.findById(req.params.id).select("+applicantsApplied");
+
+  if (!job) {
+    return next(new ErrorHandler("Job not found.", 404));
+  }
+
+  // Check that if job last date has been passed or not
+  if (job.lastDate < new Date(Date.now())) {
+    return next(
+      new ErrorHandler(
+        "You can not apply to this job. Last date to apply is already passed.",
+        400
+      )
+    );
+  }
+
+  // Check if the user has already applied to the job or not
+  for (let i = 0; i < job.applicantsApplied.length; i++) {
+    if (job.applicantsApplied[i].id === req.user.id) {
+      return next(
+        new ErrorHandler("You have already applied to that Job before.", 400)
+      );
+    }
+  }
+
+  // Check the files
+  if (!req.files) {
+    return next(new ErrorHandler("Please upload file.", 400));
+  }
+
+  const file = req.files.file;
+
+  // Check the file type (only allowing pdf and docx)
+  const supportedFiles = /.docx|.pdf/;
+  if (!supportedFiles.test(path.extname(file.name))) {
+    return next(
+      new ErrorHandler("Please upload document file, pdf or docx.", 400)
+    );
+  }
+
+  // Check document size
+  if (file.size > process.env.MAX_FILE_SIZE) {
+    return next(new ErrorHandler("Please upload file less than 8MB.", 400));
+  }
+
+  // Renaming document or resume
+  file.name = `${req.user.name.replace(" ", "_")}_${job._id}${
+    path.parse(file.name).ext
+  }`;
+
+  // move the file where you want to store
+  file.mv(`${process.env.UPLOAD_PATH}/${file.name}`, async (err) => {
+    if (err) {
+      console.log(err);
+      return next(new ErrorHandler("Resume Upload Failed.", 500));
+    }
+
+    await Job.findByIdAndUpdate(
+      req.params.id,
+      {
+        $push: {
+          applicantsApplied: {
+            id: req.user.id,
+            resume: file.name,
+          },
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Applied to the Job Successfully!!",
+      data: file.name,
+    });
   });
 });

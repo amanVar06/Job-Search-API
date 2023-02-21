@@ -10,6 +10,7 @@ const {
   deleteJob,
   getJob,
   jobStats,
+  applyJob,
 } = require("../controllers/jobsController.js");
 
 const {
@@ -25,6 +26,11 @@ router.route("/stats/:topic").get(jobStats);
 router
   .route("/job/new")
   .post(isAuthenticatedUser, authorizeRoles("employeer", "admin"), newJob);
+
+router
+  .route("/job/:id/apply")
+  .put(isAuthenticatedUser, authorizeRoles("user"), applyJob);
+//only user can apply for the job
 
 router
   .route("/job/:id")

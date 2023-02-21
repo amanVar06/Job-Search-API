@@ -107,6 +107,7 @@ const jobSchema = new mongoose.Schema({
   applicantsApplied: {
     type: [Object],
     select: false, //to hide this from user
+    //can not select as it is
   },
   user: {
     type: mongoose.Schema.ObjectId,
