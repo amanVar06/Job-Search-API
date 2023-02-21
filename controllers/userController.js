@@ -4,7 +4,7 @@ const Job = require("../models/jobs.js");
 const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors.js");
 const sendToken = require("../utils/jwtToken.js");
-
+const APIFilters = require("../utils/apiFilters.js");
 const fs = require("fs");
 
 // Get Current user profile => /api/v1/me
@@ -57,8 +57,32 @@ exports.updateUser = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+// Show all applied jobs => /api/v1/jobs/applied
+exports.getAppliedJobs = catchAsyncErrors(async (req, res, next) => {
+  const jobs = await Job.find({ "applicantsApplied.id": req.user.id }).select(
+    "+applicantsApplied"
+  );
+
+  res.status(200).json({
+    success: true,
+    results: jobs.length,
+    data: jobs,
+  });
+});
+
+// Show all jobs published by the employeer => /api/v1/jobs/published
+exports.getPublishedJobs = catchAsyncErrors(async (req, res, next) => {
+  const jobs = await Job.find({ user: req.user.id });
+
+  res.status(200).json({
+    success: true,
+    results: jobs.length,
+    data: jobs,
+  });
+});
+
 //Delete current User => /api/v1/me/delete
-exports.deleteUser = catchAsyncErrors(async (req, res, next) => {
+exports.deleteCurrentUser = catchAsyncErrors(async (req, res, next) => {
   await deleteUserData(req.user.id, req.user.role);
 
   const user = await User.findByIdAndDelete(req.user.id);
@@ -71,6 +95,44 @@ exports.deleteUser = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: "Your account has been deleted",
+  });
+});
+
+// Adding controller methods that only accessible by admins
+
+// Show all users(Admin) => /api/v1/users
+exports.getUsers = catchAsyncErrors(async (req, res, next) => {
+  const apiFilters = new APIFilters(User.find(), req.query);
+  apiFilters.filter();
+  apiFilters.sort();
+  apiFilters.limitFields();
+  apiFilters.pagination();
+
+  const users = await apiFilters.query;
+
+  res.status(200).json({
+    success: true,
+    results: users.length,
+    data: users,
+  });
+});
+
+// Delete a user(Admin) => /api/v1/user/:id
+exports.deleteUserAdmin = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return next(
+      new ErrorHandler(`User not found with id: ${req.params.id}`, 404)
+    );
+  }
+
+  await deleteUserData(user.id, user.role);
+  user.remove();
+
+  res.status(200).json({
+    success: true,
+    message: "User is successfully deleted by Admin",
   });
 });
 

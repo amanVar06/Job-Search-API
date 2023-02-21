@@ -1,19 +1,37 @@
 const express = require("express");
 const router = express.Router();
 
-const { isAuthenticatedUser } = require("../middlewares/auth.js");
+const {
+  isAuthenticatedUser,
+  authorizeRoles,
+} = require("../middlewares/auth.js");
 const {
   getUserProfile,
   updatePassword,
   updateUser,
-  deleteUser,
+  deleteCurrentUser,
+  getAppliedJobs,
+  getPublishedJobs,
+  getUsers,
+  deleteUserAdmin,
 } = require("../controllers/userController.js");
 
-router.route("/me").get(isAuthenticatedUser, getUserProfile);
+router.use(isAuthenticatedUser); // because using this in all routes
 
-router.route("/password/update").put(isAuthenticatedUser, updatePassword);
-router.route("/me/update").put(isAuthenticatedUser, updateUser);
+router.route("/me").get(getUserProfile);
+router.route("/jobs/applied").get(authorizeRoles("user"), getAppliedJobs);
+router
+  .route("/jobs/published")
+  .get(authorizeRoles("admin", "employeer"), getPublishedJobs);
 
-router.route("/me/delete").delete(isAuthenticatedUser, deleteUser);
+router.route("/password/update").put(updatePassword);
+router.route("/me/update").put(updateUser);
+
+router.route("/me/delete").delete(deleteCurrentUser);
+
+// Admin only routes
+router.route("/users").get(authorizeRoles("admin"), getUsers);
+
+router.route("/user/:id").delete(authorizeRoles("admin"), deleteUserAdmin);
 
 module.exports = router;
