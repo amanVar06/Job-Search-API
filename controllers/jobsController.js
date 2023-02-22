@@ -4,6 +4,7 @@ const APIFilters = require("../utils/apiFilters.js");
 
 const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors.js");
+const fs = require("fs");
 
 const path = require("path"); // built in module
 
@@ -65,6 +66,16 @@ exports.updateJob = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Job not found", 404));
   }
 
+  // check if the current user is the owner of that job
+  if (job.user.toString() !== req.user.id && req.user.role !== "admin") {
+    return next(
+      new ErrorHandler(
+        `User (${req.user.id}) is not allowed to update this job.`,
+        401
+      )
+    );
+  }
+
   job = await Job.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
@@ -79,16 +90,38 @@ exports.updateJob = catchAsyncErrors(async (req, res, next) => {
 
 // Delete a Job => /api/v1/job/:id
 exports.deleteJob = catchAsyncErrors(async (req, res, next) => {
-  let job = await Job.findById(req.params.id);
+  let job = await Job.findById(req.params.id).select("+applicantsApplied");
 
   if (!job) {
     return next(new ErrorHandler("Job not found", 404));
   }
 
-  //delete a job then delete files associated with that job too
-  //Job.remove() also do the same work
+  // check if the current user is the owner of that job
+  if (job.user.toString() !== req.user.id && req.user.role !== "admin") {
+    return next(
+      new ErrorHandler(
+        `User (${req.user.id}) is not allowed to delete this job.`,
+        401
+      )
+    );
+  } //old jobs dont have user value, delete these types of jobs from database
+
+  // Deleting files associated with that job
+
+  for (let i = 0; i < job.applicantsApplied.length; i++) {
+    let filepath =
+      `${__dirname}/public/uploads/${job.applicantsApplied[i].resume}`.replace(
+        "/controllers",
+        ""
+      );
+
+    fs.unlink(filepath, (err) => {
+      if (err) return console.log(err);
+    });
+  }
 
   job = await Job.findByIdAndDelete(req.params.id);
+  //Job.remove() also do the same work
 
   res.status(200).json({
     success: true,
