@@ -10,6 +10,7 @@ const mongoSanitize = require("express-mongo-sanitize");
 const xssClean = require("xss-clean");
 const hpp = require("hpp"); // Express middleware to protect against HTTP Parameter Pollution attacks
 const cors = require("cors");
+const bodyParser = require("body-parser");
 
 const connectDatabase = require("./config/database.js");
 const errorMiddleware = require("./middlewares/errors.js");
@@ -29,6 +30,12 @@ process.on("uncaughtException", (err) => {
 
 //connecting to database
 connectDatabase();
+
+// Set up body parser
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Set up public directory
+app.use(express.static("public"));
 
 // Set up security headers
 app.use(helmet());
