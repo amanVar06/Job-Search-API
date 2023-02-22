@@ -6,6 +6,9 @@ const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
+const xssClean = require("xss-clean");
+const hpp = require("hpp"); // Express middleware to protect against HTTP Parameter Pollution attacks
 
 const connectDatabase = require("./config/database.js");
 const errorMiddleware = require("./middlewares/errors.js");
@@ -26,6 +29,9 @@ process.on("uncaughtException", (err) => {
 //connecting to database
 connectDatabase();
 
+// Set up security headers
+app.use(helmet());
+
 // Setup body parser
 app.use(express.json());
 
@@ -35,8 +41,21 @@ app.use(cookieParser());
 // Handle file uploads
 app.use(fileUpload());
 
-// Set up security headers
-app.use(helmet());
+// To remove data using these defaults (i.e. Sanitize data)
+// sanitizes user-supplied data to prevent MongoDB Operator Injection.
+app.use(mongoSanitize());
+
+// Prevent XSS attacks
+app.use(xssClean());
+//will make the script useless
+
+// Prevent parameter pollution
+// The whitelist option allows to specify parameters that shall not be touched by HPP.
+app.use(
+  hpp({
+    whitelist: [`positions`], // that we want to ignore/exclude
+  })
+);
 
 // Rate Limiting
 const limiter = rateLimit({
