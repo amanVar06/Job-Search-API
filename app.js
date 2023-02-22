@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
 
 const connectDatabase = require("./config/database.js");
 const errorMiddleware = require("./middlewares/errors.js");
@@ -33,6 +34,9 @@ app.use(cookieParser());
 
 // Handle file uploads
 app.use(fileUpload());
+
+// Set up security headers
+app.use(helmet());
 
 // Rate Limiting
 const limiter = rateLimit({
