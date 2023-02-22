@@ -9,6 +9,7 @@ const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const xssClean = require("xss-clean");
 const hpp = require("hpp"); // Express middleware to protect against HTTP Parameter Pollution attacks
+const cors = require("cors");
 
 const connectDatabase = require("./config/database.js");
 const errorMiddleware = require("./middlewares/errors.js");
@@ -68,6 +69,9 @@ const limiter = rateLimit({
 
 // Apply the rate limiting middleware to all requests
 app.use(limiter);
+
+// SET Up CORS - Accessible by other domains
+app.use(cors());
 
 //Importing all routes
 const jobs = require("./routes/jobs.js");
